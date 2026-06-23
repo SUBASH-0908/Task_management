@@ -2,10 +2,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// In production (Vercel), uses the deployed backend URL
-// In development, empty string uses the CRA proxy (localhost:5000)
-const API_BASE = process.env.REACT_APP_API_URL || '';
-
 function App() {
   // ── Auth State ──
   const [token, setToken] = useState(localStorage.getItem('token') || '');
@@ -42,7 +38,7 @@ function App() {
     setAuthLoading(true);
 
     try {
-      const url = isLogin ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/register`;
+      const url = isLogin ? '/api/auth/login' : '/api/auth/register';
       const body = isLogin
         ? { email: authEmail, password: authPassword }
         : { name: authName, email: authEmail, password: authPassword };
@@ -74,7 +70,7 @@ function App() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/tasks`, { headers: authHeader });
+      const res = await axios.get('/api/tasks', { headers: authHeader });
       setTasks(res.data);
       setError('');
     } catch (err) {
@@ -93,7 +89,7 @@ function App() {
     if (!newTitle.trim()) return;
 
     try {
-      const res = await axios.post(`${API_BASE}/api/tasks`, { title: newTitle }, { headers: authHeader });
+      const res = await axios.post('/api/tasks', { title: newTitle }, { headers: authHeader });
       setTasks([res.data, ...tasks]);
       setNewTitle('');
       setError('');
@@ -104,7 +100,7 @@ function App() {
 
   const toggleTask = async (id) => {
     try {
-      const res = await axios.patch(`${API_BASE}/api/tasks/${id}`, {}, { headers: authHeader });
+      const res = await axios.patch(`/api/tasks/${id}`, {}, { headers: authHeader });
       setTasks(tasks.map((task) => (task._id === id ? res.data : task)));
     } catch (err) {
       setError('Failed to update task.');
@@ -113,7 +109,7 @@ function App() {
 
   const deleteTask = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/api/tasks/${id}`, { headers: authHeader });
+      await axios.delete(`/api/tasks/${id}`, { headers: authHeader });
       setTasks(tasks.filter((task) => task._id !== id));
     } catch (err) {
       setError('Failed to delete task.');

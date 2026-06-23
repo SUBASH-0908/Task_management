@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const taskRoutes = require('./routes/tasks');
@@ -16,14 +17,25 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Health check
-app.get('/', (req, res) => {
-  res.json({ message: 'Task Manager API is running!' });
-});
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve built React files
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+  // Any route that is not an API route → send React's index.html
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+} else {
+  // Health check for development
+  app.get('/', (req, res) => {
+    res.json({ message: 'Task Manager API is running!' });
+  });
+}
 
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
