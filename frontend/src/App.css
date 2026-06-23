@@ -277,3 +277,86 @@ body {
   color: #334155;
   font-size: 0.8rem;
 }
+
+/* ── Auth Container ── */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: #1e293b;
+  border: 1.5px solid #334155;
+  border-radius: 16px;
+  padding: 36px 32px;
+}
+
+/* ── Auth Tabs ── */
+.auth-tabs {
+  display: flex;
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-tab.active {
+  background: linear-gradient(135deg, #818cf8, #c084fc);
+  color: #fff;
+}
+
+.auth-tab:hover:not(.active) {
+  color: #94a3b8;
+}
+
+/* ── Auth Form ── */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  margin-top: 4px;
+  justify-content: center;
+}
+
+/* ── Logout Button ── */
+.logout-btn {
+  margin-top: 8px;
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  border-color: #ef4444;
+  color: #fca5a5;
+}

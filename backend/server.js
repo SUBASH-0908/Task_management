@@ -4,17 +4,23 @@ const cors = require('cors');
 require('dotenv').config();
 
 const taskRoutes = require('./routes/tasks');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Health check route
+// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'Task Manager API is running!' });
 });

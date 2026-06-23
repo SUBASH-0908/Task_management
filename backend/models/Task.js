@@ -11,6 +11,12 @@ const taskSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Each task belongs to a user
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt automatically

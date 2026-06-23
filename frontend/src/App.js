@@ -2,40 +2,99 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = 'http://localhost:5000/api/tasks';
+// In production (Vercel), uses the deployed backend URL
+// In development, empty string uses the CRA proxy (localhost:5000)
+const API_BASE = process.env.REACT_APP_API_URL || '';
 
 function App() {
+  // ── Auth State ──
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || 'null'));
+  const [isLogin, setIsLogin] = useState(true);
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // ── Task State ──
   const [tasks, setTasks] = useState([]);
   const [newTitle, setNewTitle] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch all tasks on component mount
+  // Fetch tasks when user logs in
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (token) {
+      fetchTasks();
+    }
+  }, [token]);
+
+  // Helper: build auth header
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  // ── Auth Functions ──
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+
+    try {
+      const url = isLogin ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/register`;
+      const body = isLogin
+        ? { email: authEmail, password: authPassword }
+        : { name: authName, email: authEmail, password: authPassword };
+
+      const res = await axios.post(url, body);
+
+      // Save token and user info in localStorage
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      setToken(res.data.token);
+      setUser(res.data.user);
+    } catch (err) {
+      setAuthError(err.response?.data?.error || 'Something went wrong. Try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken('');
+    setUser(null);
+    setTasks([]);
+  };
+
+  // ── Task Functions ──
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(API_URL);
-      setTasks(response.data);
+      const res = await axios.get(`${API_BASE}/api/tasks`, { headers: authHeader });
+      setTasks(res.data);
       setError('');
     } catch (err) {
-      setError('Failed to load tasks. Make sure the backend is running.');
+      if (err.response?.status === 401) {
+        handleLogout(); // Token expired — force logout
+      } else {
+        setError('Failed to load tasks. Make sure the backend is running.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Add a new task
   const addTask = async (e) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
     try {
-      const response = await axios.post(API_URL, { title: newTitle });
-      setTasks([response.data, ...tasks]);
+      const res = await axios.post(`${API_BASE}/api/tasks`, { title: newTitle }, { headers: authHeader });
+      setTasks([res.data, ...tasks]);
       setNewTitle('');
       setError('');
     } catch (err) {
@@ -43,20 +102,18 @@ function App() {
     }
   };
 
-  // Toggle task completion
   const toggleTask = async (id) => {
     try {
-      const response = await axios.patch(`${API_URL}/${id}`);
-      setTasks(tasks.map((task) => (task._id === id ? response.data : task)));
+      const res = await axios.patch(`${API_BASE}/api/tasks/${id}`, {}, { headers: authHeader });
+      setTasks(tasks.map((task) => (task._id === id ? res.data : task)));
     } catch (err) {
       setError('Failed to update task.');
     }
   };
 
-  // Delete a task
   const deleteTask = async (id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_BASE}/api/tasks/${id}`, { headers: authHeader });
       setTasks(tasks.filter((task) => task._id !== id));
     } catch (err) {
       setError('Failed to delete task.');
@@ -65,13 +122,95 @@ function App() {
 
   const completedCount = tasks.filter((t) => t.completed).length;
 
+  // ── Auth Screen ──
+  if (!token) {
+    return (
+      <div className="app">
+        <div className="auth-container">
+          <div className="auth-card">
+            <div className="header">
+              <h1>📝 Task Manager</h1>
+              <p className="subtitle">Stay organized, stay productive</p>
+            </div>
+
+            {/* Login / Register Tabs */}
+            <div className="auth-tabs">
+              <button
+                id="login-tab"
+                className={`auth-tab ${isLogin ? 'active' : ''}`}
+                onClick={() => { setIsLogin(true); setAuthError(''); }}
+              >
+                Login
+              </button>
+              <button
+                id="register-tab"
+                className={`auth-tab ${!isLogin ? 'active' : ''}`}
+                onClick={() => { setIsLogin(false); setAuthError(''); }}
+              >
+                Register
+              </button>
+            </div>
+
+            {/* Auth Form */}
+            <form className="auth-form" onSubmit={handleAuth}>
+              {!isLogin && (
+                <input
+                  id="auth-name"
+                  type="text"
+                  className="task-input"
+                  placeholder="Your name"
+                  value={authName}
+                  onChange={(e) => setAuthName(e.target.value)}
+                  required
+                />
+              )}
+              <input
+                id="auth-email"
+                type="email"
+                className="task-input"
+                placeholder="Email address"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                required
+              />
+              <input
+                id="auth-password"
+                type="password"
+                className="task-input"
+                placeholder="Password"
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                required
+              />
+
+              {authError && <div className="error-banner">⚠️ {authError}</div>}
+
+              <button
+                id="auth-submit"
+                type="submit"
+                className="add-btn auth-submit-btn"
+                disabled={authLoading}
+              >
+                {authLoading ? 'Please wait...' : isLogin ? 'Login' : 'Create Account'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Task Screen ──
   return (
     <div className="app">
       <div className="container">
         {/* Header */}
         <header className="header">
           <h1>📝 Task Manager</h1>
-          <p className="subtitle">Stay organized, stay productive</p>
+          <p className="subtitle">Welcome back, {user?.name}!</p>
+          <button id="logout-btn" className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </header>
 
         {/* Stats */}

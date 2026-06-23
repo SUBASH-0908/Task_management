@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const authMiddleware = require('../middleware/auth');
 
-// GET /api/tasks - Get all tasks (newest first)
+// Protect all task routes — user must be logged in
+router.use(authMiddleware);
+
+// GET /api/tasks - Get all tasks for the logged-in user
 router.get('/', async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch tasks' });
@@ -21,7 +25,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const newTask = new Task({ title: title.trim() });
+    const newTask = new Task({ title: title.trim(), userId: req.userId });
     const savedTask = await newTask.save();
     res.status(201).json(savedTask);
   } catch (err) {
@@ -32,7 +36,7 @@ router.post('/', async (req, res) => {
 // PATCH /api/tasks/:id - Toggle task completion
 router.patch('/:id', async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
@@ -49,7 +53,7 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/tasks/:id - Delete a task
 router.delete('/:id', async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
